@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MovieCapsule.Controllers
@@ -22,14 +23,21 @@ namespace MovieCapsule.Controllers
             _db = db;
         }
 
-        public IActionResult Index(int? genre)
+        public IActionResult Index(int? genre, string q)
         {
             // https://docs.microsoft.com/en-us/aspnet/core/mvc/views/working-with-forms?view=aspnetcore-5.0#the-select-tag-helper
             var vm = new HomeViewModel()
             {
-                Genres = _db.Genres.Select(x => new SelectListItem() { Text = x.Name, Value = x.Id.ToString() }).ToList(),
-                Movies = _db.Movies.Include(x => x.Genres).Where(x => !genre.HasValue || x.Genres.Any(g => g.Id == genre)).ToList(),
-                SelectedGenreId = genre
+                Genres = _db.Genres
+                    .Select(x => new SelectListItem() { Text = x.Name, Value = x.Id.ToString() })
+                    .ToList(),
+                Movies = _db.Movies
+                    .Include(x => x.Genres)
+                    .Where(x => (!genre.HasValue || x.Genres.Any(g => g.Id == genre)) 
+                        && (q == null || x.Title.Contains(q) || x.Year.ToString().Equals(q) || x.Rating.ToString().Equals(q) || x.Rating.ToString().Replace(".", ",").Equals(q)))
+                    .ToList(),
+                SelectedGenreId = genre,
+                SearchCriteria = q
             };
             return View(vm);
         }
